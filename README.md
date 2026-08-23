@@ -57,6 +57,32 @@ cd BTreeOrderBook_1
 pip install -e .
 ```
 
+### 配置文件
+
+运行路径和默认参数集中在 `orderbook/config.ini`：
+
+```ini
+[paths]
+tardis_root = /path/to/TardisSource
+checkpoint_root = /path/to/checkpoints
+
+[defaults]
+market = usd
+ts_divisor = 1000000
+crossover_log_threshold = 10
+cache_size = 5
+io_workers = 3
+workers = 20
+```
+
+Python API 和 `run_symbol.py` 都读取这份配置。也可以通过环境变量选择另一份配置：
+
+```bash
+export ORDERBOOK_CONFIG=/path/to/orderbook.ini
+```
+
+显式传入 `ckpt_dir`、`ts_divisor` 等参数时，以显式参数为准。
+
 编译默认启用 `-O3 -march=native -flto` 优化。
 
 ## 快速开始
@@ -276,7 +302,7 @@ Tardis 的 `incremental_book_L2` 在每日文件开头和重连后提供 `is_sna
 
 - 使用 `local_timestamp` 而非交易所 `timestamp` 作为可见性时钟。
 - 同一 `local_timestamp` 的所有价位属于同一消息，全部处理完后才生成可查询缓存状态。
-- 任意时刻 `T` 的查询结果等于从前日 v4 检查点开始，只喂
+- 任意时刻 `T` 的查询结果等于从前日 v6 检查点开始，只喂
   `local_timestamp <= T` 的完整消息所得结果；真实数据验收会逐档校验。
 
 ### 开关与审计
@@ -294,7 +320,8 @@ ob.snapshot_events   # 当日每次快照生效的审计记录
 
 v6 检查点同时标记快照覆盖语义、`local_timestamp` 因果时钟、越界幽灵档清理和
 snapshot 段原子应用语义。v2/v3/v4/v5 会被拒绝，
-不能参与查询或续算。推荐写入独立目录 `<configured checkpoint path>
+不能参与查询或续算。检查点目录由 `orderbook/config.ini` 的
+`[paths].checkpoint_root` 控制。
 
 `<configured checkpoint path> 下的旧检查点采用**旧语义**（快照当增量叠加），
 簿里带有大量幽灵档——BTCUSDT 2022-05-31 收盘实测 32834/30688 档，启用重置后只有 19967/15450 档，
@@ -369,5 +396,4 @@ Body:   bid_count(i64) | [price(i32) + amount(f64)] * N
 python tests/test_snapshot_semantics.py     # 单元 + 因果 + 回归，退出码 0 = 通过
 ```
 
-回归用例要求 `<configured checkpoint path> 仍是**旧实现生成的 v2**
-文件；一旦重建过就会自动跳过该项。
+真实因果用例使用配置文件指定的 v6 检查点目录；没有对应日期文件时会自动跳过真实数据部分。

@@ -18,8 +18,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import numpy as np
 
 from orderbook._cpp import StateMachine
+from orderbook.config import CONFIG
 
-CKPT_DIR = '/mnt/ob_checkpoints_v6_sample/usd_btcusdt'
+CKPT_DIR = os.environ.get(
+    'ORDERBOOK_TEST_CKPT_DIR',
+    os.path.join(CONFIG.checkpoint_root, 'usd_btcusdt'),
+)
 DATE, PREV = '2019-11-18', '2019-11-17'
 US = 1_000_000
 

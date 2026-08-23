@@ -12,9 +12,9 @@ import pyarrow.csv as _pa_csv
 import pyarrow as _pa
 import pyarrow.compute as _pc
 from orderbook._cpp import StateMachine as _StateMachine, CrossOverPoint, Snapshot
+from orderbook.config import CONFIG
 
-# Tardis 数据根目录
-TARDIS_ROOT = '/mnt/30.133_xintang/Data/Crypto/TardisSource'
+TARDIS_ROOT = CONFIG.tardis_root
 
 
 def list_assets(market=None):
@@ -60,11 +60,11 @@ class OrderBook:
 
     @classmethod
     def from_asset(cls, market, symbol, ckpt_dir=None,
-                   ckpt_root='/mnt/ob_checkpoints',
-                   ts_divisor=1000000,
-                   crossover_log_threshold=10,
+                   ckpt_root=None,
+                   ts_divisor=None,
+                   crossover_log_threshold=None,
                    file_pattern=r'(\d{4}-\d{2}-\d{2}).*\.csv(?:\.gz)?$',
-                   cache_size=5, snapshot_reset=True):
+                   cache_size=None, snapshot_reset=True):
         """通过 Binance market + symbol 创建 OrderBook。
 
         参数:
@@ -74,6 +74,15 @@ class OrderBook:
             ckpt_root: 检查点根目录，当 ckpt_dir 为 None 时使用，
                        实际路径为 ckpt_root/market_symbol/
         """
+        if ckpt_root is None:
+            ckpt_root = CONFIG.checkpoint_root
+        if ts_divisor is None:
+            ts_divisor = CONFIG.ts_divisor
+        if crossover_log_threshold is None:
+            crossover_log_threshold = CONFIG.crossover_log_threshold
+        if cache_size is None:
+            cache_size = CONFIG.cache_size
+
         asset_dir = f'binance_{market}_{symbol}'
         data_dir = os.path.join(TARDIS_ROOT, asset_dir, 'incremental_book_L2')
         if not os.path.isdir(data_dir):
@@ -91,12 +100,18 @@ class OrderBook:
                    file_pattern=file_pattern, cache_size=cache_size,
                    snapshot_reset=snapshot_reset)
 
-    def __init__(self, data_dir, ckpt_dir, ts_divisor=1000000,
-                 crossover_log_threshold=10,
+    def __init__(self, data_dir, ckpt_dir, ts_divisor=None,
+                 crossover_log_threshold=None,
                  file_pattern=r'(\d{4}-\d{2}-\d{2}).*\.csv(?:\.gz)?$',
-                 cache_size=5, snapshot_reset=True):
+                 cache_size=None, snapshot_reset=True):
         """snapshot_reset: True(默认) 按 is_snapshot 做快照重置; False 退化为旧行为
         (快照行当普通增量叠加)，仅用于 A/B 对比。"""
+        if ts_divisor is None:
+            ts_divisor = CONFIG.ts_divisor
+        if crossover_log_threshold is None:
+            crossover_log_threshold = CONFIG.crossover_log_threshold
+        if cache_size is None:
+            cache_size = CONFIG.cache_size
         self._data_dir = data_dir
         self._ckpt_dir = ckpt_dir
         self._ts_divisor = ts_divisor
@@ -148,7 +163,7 @@ class OrderBook:
         """读取 CSV，使用 local_timestamp 作为严格因果时钟。"""
         return self._read_csv_to_numpy(path)
 
-    def build_checkpoints(self, n_days=None, force=False, on_day_done=None, io_workers=3):
+    def build_checkpoints(self, n_days=None, force=False, on_day_done=None, io_workers=None):
         """逐天处理数据，每天存一个检查点。I/O、计算、存盘三阶段异步重叠。
 
         参数:
@@ -160,6 +175,8 @@ class OrderBook:
         import time as _time
         from collections import deque
 
+        if io_workers is None:
+            io_workers = CONFIG.io_workers
         sm = self._new_sm(snapshot_enabled=False)  # 构建检查点时不需要分钟快照
 
         total = min(n_days, len(self._dates)) if n_days else len(self._dates)
@@ -452,7 +469,7 @@ class OrderBook:
 
     @staticmethod
     def _read_ckpt_decimals(path):
-        """从 checkpoint 文件头读取 price_decimals（v2/v3/v4），失败返回 None。"""
+        """从 checkpoint 文件头读取 price_decimals（v2-v6），失败返回 None。"""
         try:
             with open(path, 'rb') as f:
                 magic = f.read(4)
@@ -608,7 +625,7 @@ class OrderBook:
                 )
         elif bisect.bisect_left(self._dates, date_str) > 0:
             raise RuntimeError(
-                f"缺少 {date_str} 紧邻前一数据日的 v4 检查点；"
+                f"缺少 {date_str} 紧邻前一数据日的 v6 检查点；"
                 "不能在未知深档状态下做绝对因果重放。"
             )
 

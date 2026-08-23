@@ -5,7 +5,8 @@
     # 单 symbol
     python run_symbol.py ethusdt
     python run_symbol.py solusdt --force
-    python run_symbol.py btcusdt --force --ckpt-root /mnt/ob_checkpoints_v4
+    python run_symbol.py btcusdt --force
+    python run_symbol.py btcusdt --config /path/to/config.ini
 
     # 多 symbol 并行 (利用 multiprocessing)
     python run_symbol.py --all
@@ -24,25 +25,31 @@ from multiprocessing import Pool
 # 确保从脚本所在目录导入 orderbook
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from orderbook import OrderBook, list_assets
+# 在导入 orderbook 前允许命令行选择配置文件。
+for i, arg in enumerate(sys.argv[:-1]):
+    if arg == '--config':
+        os.environ['ORDERBOOK_CONFIG'] = sys.argv[i + 1]
+        break
 
-DEFAULT_CKPT_ROOT = '/mnt/ob_checkpoints_v4'
+from orderbook import CONFIG, OrderBook, list_assets
+
+DEFAULT_CKPT_ROOT = CONFIG.checkpoint_root
 
 
 def build_one(args):
     """构建单个 symbol 的检查点 (适用于 Pool.map)。"""
     symbol, force, ckpt_root = args
-    ckpt_dir = os.path.join(ckpt_root, f'usd_{symbol}')
+    ckpt_dir = os.path.join(ckpt_root, f'{CONFIG.market}_{symbol}')
 
     print(f"[{symbol}] 开始构建检查点, ckpt_dir={ckpt_dir}")
     t0 = time.time()
     try:
         ob = OrderBook.from_asset(
-            market='usd',
+            market=CONFIG.market,
             symbol=symbol,
             ckpt_dir=ckpt_dir,
-            ts_divisor=1_000_000,
-            crossover_log_threshold=10,
+            ts_divisor=CONFIG.ts_divisor,
+            crossover_log_threshold=CONFIG.crossover_log_threshold,
         )
         ob.build_checkpoints(force=force)
         elapsed = time.time() - t0
@@ -56,7 +63,7 @@ def build_one(args):
 
 def main():
     force = '--force' in sys.argv
-    workers = 20  # 默认并行数
+    workers = CONFIG.workers
     ckpt_root = DEFAULT_CKPT_ROOT
 
     # 解析 --workers N
@@ -68,7 +75,7 @@ def main():
 
     if '--all' in sys.argv:
         # 多 symbol 并行模式
-        assets = list_assets('usd')
+        assets = list_assets(CONFIG.market)
         symbols = [a['symbol'] for a in assets]
         if not symbols:
             print("未发现可用的 usd 资产")
@@ -88,7 +95,7 @@ def main():
         # 单 symbol 模式 (向后兼容)
         option_values = {
             sys.argv[i + 1] for i, a in enumerate(sys.argv[:-1])
-            if a in ('--workers', '--ckpt-root')
+            if a in ('--workers', '--ckpt-root', '--config')
         }
         non_flag_args = [
             a for a in sys.argv[1:]

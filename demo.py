@@ -20,7 +20,7 @@ BTreeOrderBook API 用法演示
 
 import numpy as np
 import pandas as pd
-from orderbook import OrderBook, list_assets
+from orderbook import CONFIG, OrderBook, list_assets
 from orderbook._cpp import StateMachine, CrossOverPoint, Snapshot
 
 
@@ -68,7 +68,7 @@ print(f"from_asset 创建成功, 共 {len(ob.dates)} 天数据")
 ob2 = OrderBook.from_asset(
     market='usd',
     symbol='ethusdt',
-    ckpt_dir='<configured checkpoint path>/usd_ethusdt',  # 指定完整路径
+    ckpt_dir=f'{CONFIG.checkpoint_root}/usd_ethusdt',      # 指定完整路径
 )
 print(f"指定 ckpt_dir 创建成功")
 del ob2
@@ -81,7 +81,7 @@ del ob2
 # )
 
 # from_asset 其他可选参数:
-# ckpt_root     — 检查点根目录, 默认 <configured checkpoint path>
+# ckpt_root     — 检查点根目录, 默认来自 orderbook/config.ini
 # file_pattern  — CSV 文件名正则, 默认匹配 YYYY-MM-DD*.csv(.gz)
 # cache_size    — LRU 天缓存大小, 默认 5 (0 = 禁用)
 
