@@ -1,0 +1,12 @@
+build/
+*.egg-info/
+__pycache__/
+*.pyc
+*.so
+*.o
+*.ckpt
+*.log
+.pytest_cache/
+dist/
+.venv/
+.claude/
