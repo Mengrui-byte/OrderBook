@@ -10,3 +10,5 @@ __pycache__/
 dist/
 .venv/
 .claude/
+orderbook/config.ini
+LOCAL_SETUP.md

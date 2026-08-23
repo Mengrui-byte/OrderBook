@@ -4,7 +4,9 @@ from dataclasses import dataclass
 import os
 
 
-_DEFAULT_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.ini")
+_CONFIG_DIR = os.path.dirname(__file__)
+_DEFAULT_CONFIG_PATH = os.path.join(_CONFIG_DIR, "config.ini")
+_EXAMPLE_CONFIG_PATH = os.path.join(_CONFIG_DIR, "config.example.ini")
 
 
 def _path(value):
@@ -26,10 +28,15 @@ class Config:
 
 def load_config(path=None):
     """Load configuration from ``path`` or ORDERBOOK_CONFIG/default file."""
-    config_path = _path(path or os.environ.get("ORDERBOOK_CONFIG", _DEFAULT_CONFIG_PATH))
+    requested_path = path or os.environ.get("ORDERBOOK_CONFIG")
+    config_path = _path(requested_path or _DEFAULT_CONFIG_PATH)
     parser = ConfigParser()
     if not parser.read(config_path):
-        raise FileNotFoundError(f"配置文件不存在: {config_path}")
+        if requested_path:
+            raise FileNotFoundError(f"配置文件不存在: {config_path}")
+        config_path = _path(_EXAMPLE_CONFIG_PATH)
+        if not parser.read(config_path):
+            raise FileNotFoundError(f"配置文件不存在: {config_path}")
 
     paths = parser["paths"]
     defaults = parser["defaults"]
@@ -47,4 +54,3 @@ def load_config(path=None):
 
 
 CONFIG = load_config()
-

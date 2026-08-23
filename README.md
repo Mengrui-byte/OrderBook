@@ -59,12 +59,13 @@ pip install -e .
 
 ### 配置文件
 
-运行路径和默认参数集中在 `orderbook/config.ini`：
+仓库提供通用模板 `orderbook/config.example.ini`。复制为本地配置文件
+`orderbook/config.ini` 后，填入本机的数据与检查点路径；`config.ini` 不应提交到仓库。
 
 ```ini
 [paths]
-tardis_root = /path/to/TardisSource
-checkpoint_root = /path/to/checkpoints
+tardis_root = ./data/TardisSource
+checkpoint_root = ./checkpoints
 
 [defaults]
 market = usd
@@ -75,7 +76,7 @@ io_workers = 3
 workers = 20
 ```
 
-Python API 和 `run_symbol.py` 都读取这份配置。也可以通过环境变量选择另一份配置：
+Python API 和 `run_symbol.py` 都读取本地配置。也可以通过环境变量选择另一份配置：
 
 ```bash
 export ORDERBOOK_CONFIG=/path/to/orderbook.ini
