@@ -113,7 +113,7 @@ snap = ob.snapshot('2019-12-01 12:00:30')
 
 ## 数据目录
 
-数据根目录默认为 `<configured TardisSource path>`，目录结构为:
+数据根目录由 `orderbook/config.ini` 的 `[paths].tardis_root` 配置，目录结构为:
 
 ```
 TardisSource/
@@ -323,7 +323,7 @@ snapshot 段原子应用语义。v2/v3/v4/v5 会被拒绝，
 不能参与查询或续算。检查点目录由 `orderbook/config.ini` 的
 `[paths].checkpoint_root` 控制。
 
-`<configured checkpoint path> 下的旧检查点采用**旧语义**（快照当增量叠加），
+旧版本生成的检查点目录采用**旧语义**（快照当增量叠加），
 簿里带有大量幽灵档——BTCUSDT 2022-05-31 收盘实测 32834/30688 档，启用重置后只有 19967/15450 档，
 即旧口径约 **40~50% 的档位是陈旧残留**。两种语义不可混用，`build_checkpoints` 从旧检查点
 续算时会直接报错。要用新语义必须 `build_checkpoints(force=True)` 全量重建。

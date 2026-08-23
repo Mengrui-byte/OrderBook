@@ -75,8 +75,8 @@ del ob2
 
 # 方式 3: 手动指定目录 (兼容旧接口)
 # ob3 = OrderBook(
-#     data_dir='/mnt/.../binance_usd_ethusdt/incremental_book_L2',
-#     ckpt_dir='<configured checkpoint path>/usd_ethusdt',
+#     data_dir='/path/to/TardisSource/binance_usd_ethusdt/incremental_book_L2',
+#     ckpt_dir='/path/to/checkpoints/usd_ethusdt',
 #     ts_divisor=1_000_000,
 # )
 
