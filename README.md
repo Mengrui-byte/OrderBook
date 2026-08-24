@@ -84,6 +84,14 @@ export ORDERBOOK_CONFIG=/path/to/orderbook.ini
 
 显式传入 `ckpt_dir`、`ts_divisor` 等参数时，以显式参数为准。
 
+如果已有 v6 检查点需要清理最终状态中的 crossed 档位，可直接运行：
+
+```bash
+python repair_checkpoints.py /path/to/checkpoints/usd_btcusdt
+```
+
+该工具只删除 `best_bid >= best_ask` 时的越界档，不读取原始行情；需要完整因果重建时仍应使用 `build_checkpoints(force=True)`。
+
 编译默认启用 `-O3 -march=native -flto` 优化。
 
 ## 快速开始

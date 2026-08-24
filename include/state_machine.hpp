@@ -214,9 +214,9 @@ inline void StateMachine::process(int64_t timestamp, bool is_bid,
     } else {
         book_.update_ask(price, amount);
     }
-    // 新 Tardis 语义忠实保留原始状态，包括偶发 crossed book；不能通过
-    // 删除另一侧价位来“修正”数据。旧 A/B 模式保留历史行为。
-    if (amount > 0 && !snapshot_reset_enabled_) {
+    // 正增量可能把覆盖区外的旧深档重新推过对手盘；清除越界档，避免
+    // 快照之后重新产生幽灵 crossed book。快照块本身仍按覆盖区规则处理。
+    if (amount > 0) {
         resolve_crossover(timestamp, is_bid, price);
     }
     last_ts_ = timestamp;

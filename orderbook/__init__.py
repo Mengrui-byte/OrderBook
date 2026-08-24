@@ -567,11 +567,24 @@ class OrderBook:
 
     def _scan_data(self, file_pattern):
         regex = re.compile(file_pattern)
-        result = {}
+        candidates = {}
         for f in os.listdir(self._data_dir):
             m = regex.search(f)
             if m:
-                result[m.group(1)] = os.path.join(self._data_dir, f)
+                candidates.setdefault(m.group(1), []).append(f)
+
+        result = {}
+        for date_str, names in candidates.items():
+            names.sort()
+            if len(names) > 1:
+                sizes = {os.path.getsize(os.path.join(self._data_dir, n)) for n in names}
+                if len(sizes) > 1:
+                    raise ValueError(
+                        f"同一日期存在大小不同的数据文件 {date_str}: {names}; "
+                        "请清理重复或冲突文件后再运行。"
+                    )
+            # 同尺寸重复文件按文件名稳定选择，避免 os.listdir 顺序影响结果。
+            result[date_str] = os.path.join(self._data_dir, names[0])
         return result
 
     def _ckpt_path(self, date_str):
